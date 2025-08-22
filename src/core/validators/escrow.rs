@@ -1,17 +1,19 @@
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, Env, Vec};
 
 use crate::{
-    error::ContractError,
-    storage::types::{DataKey, Escrow},
+    error::ContractError, 
+    storage::types::{DataKey, Escrow, Milestone}
 };
 
 #[inline]
 pub fn validate_release_conditions(
     escrow: &Escrow,
+    milestone: &Milestone,
     release_signer: &Address,
+    milestone_index: u32,
 ) -> Result<(), ContractError> {
-    if escrow.flags.released {
-        return Err(ContractError::EscrowAlreadyResolved);
+    if milestone.flags.released {
+        return Err(ContractError::MilestoneAlreadyReleased);
     }
 
     if release_signer != &escrow.roles.release_signer {
@@ -22,16 +24,16 @@ pub fn validate_release_conditions(
         return Err(ContractError::NoMileStoneDefined);
     }
 
-    if !escrow
-        .milestones
-        .iter()
-        .all(|milestone| milestone.approved)
-    {
-        return Err(ContractError::EscrowNotCompleted);
+    if !milestone.flags.approved{
+        return Err(ContractError::MilestoneNotCompleted);
     }
 
-    if escrow.flags.disputed {
-        return Err(ContractError::EscrowOpenedForDisputeResolution);
+    if milestone.flags.disputed {
+        return Err(ContractError::MilestoneOpenedForDisputeResolution);
+    }
+
+    if milestone_index >= escrow.milestones.len() {
+        return Err(ContractError::InvalidMileStoneIndex);
     }
 
     Ok(())
@@ -42,24 +44,25 @@ pub fn validate_escrow_property_change_conditions(
     existing_escrow: &Escrow,
     platform_address: &Address,
     contract_balance: i128,
+    milestones: Vec<Milestone>,
 ) -> Result<(), ContractError> {
+    if !milestones.is_empty() {
+        for (_, milestone) in milestones.iter().enumerate() {
+            if milestone.flags.disputed {
+                return Err(ContractError::MilestoneOpenedForDisputeResolution);
+            }
+            if milestone.flags.approved {
+                return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
+            }
+        }
+    }
 
     if platform_address != &existing_escrow.roles.platform_address {
         return Err(ContractError::OnlyPlatformAddressExecuteThisFunction);
     }
 
-    for milestone in existing_escrow.milestones.iter() {
-        if milestone.approved {
-            return Err(ContractError::MilestoneApprovedCantChangeEscrowProperties);
-        }
-    }
-
     if contract_balance > 0 {
         return Err(ContractError::EscrowHasFunds);
-    }
-
-    if existing_escrow.flags.disputed {
-        return Err(ContractError::EscrowOpenedForDisputeResolution);
     }
 
     Ok(())
@@ -74,8 +77,12 @@ pub fn validate_initialize_escrow_conditions(
         return Err(ContractError::EscrowAlreadyInitialized);
     }
 
-    if escrow_properties.amount == 0 {
-        return Err(ContractError::AmountCannotBeZero);
+    if !escrow_properties.milestones.is_empty() {
+        for (_, milestone) in escrow_properties.milestones.iter().enumerate() {
+            if milestone.amount == 0 {
+                return Err(ContractError::AmountCannotBeZero);
+            }
+        }
     }
 
     if escrow_properties.milestones.len() > 10 {

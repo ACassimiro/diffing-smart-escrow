@@ -8,18 +8,18 @@ pub enum ContractError {
     AmountCannotBeZero = 2,
     EscrowAlreadyInitialized = 3,
     OnlySignerCanFundEscrow = 4,
-    EscrowAlreadyFunded = 5,
+    MilestoneAlreadyFunded = 5,
     EscrowFullyFunded = 6,
     SignerInsufficientFunds = 7,
     NotEnoughAllowance = 8,
-    EscrowAlreadyCompleted = 9,
+    MilestoneAlreadyCompleted = 9,
     SignerInsufficientFundsToComplete = 10,
     OnlySignerCanRequestRefund = 11,
     NoFundsToRefund = 12,
     ContractHasInsufficientBalance = 13,
     EscrowNotFound = 14,
     OnlyReleaseSignerCanReleaseEarnings = 15,
-    EscrowNotCompleted = 16,
+    MilestoneNotCompleted = 16,
     EscrowBalanceNotEnoughToSendEarnings = 17,
     ContractInsufficientFunds = 18,
     OnlyPlatformAddressExecuteThisFunction = 19,
@@ -29,11 +29,11 @@ pub enum ContractError {
     InvalidMileStoneIndex = 23,
     OnlyApproverChangeMilstoneFlag = 24,
     OnlyDisputeResolverCanExecuteThisFunction = 25,
-    EscrowAlreadyInDispute = 26,
-    EscrowNotInDispute = 27,
+    MilestoneAlreadyInDispute = 26,
+    MilestoneNotInDispute = 27,
     InsufficientFundsForResolution = 28,
     InvalidState = 29,
-    EscrowOpenedForDisputeResolution = 30,
+    MilestoneOpenedForDisputeResolution = 30,
     AmountToDepositGreatherThanEscrowAmount = 31,
     Overflow = 32,
     Underflow = 33,
@@ -43,12 +43,16 @@ pub enum ContractError {
     InsufficientServiceProviderFundsForCommissions = 37,
     MilestoneApprovedCantChangeEscrowProperties = 38,
     EscrowHasFunds = 39,
-    EscrowAlreadyResolved = 40,
+    MilestoneAlreadyResolved = 40,
     TooManyEscrowsRequested = 41,
     UnauthorizedToChangeDisputeFlag = 42,
     ArgumentConversionFailed = 43,
     TooManyMilestones = 44,
-    ReceiverAndApproverFundsNotEqual = 45,
+    CantReleaseAMilestoneInDispute = 45,
+    EscrowBalanceNotSufficienteToSendEarnings = 46,
+    OnlyReleaseSignerCanClaimEarnings = 47,
+    MilestoneAlreadyReleased = 48,
+    MilestoneNotFound = 49,
 }
 
 impl fmt::Display for ContractError {
@@ -60,7 +64,7 @@ impl fmt::Display for ContractError {
             ContractError::OnlySignerCanFundEscrow => {
                 write!(f, "Only the signer can fund the escrow")
             }
-            ContractError::EscrowAlreadyFunded => write!(f, "Escrow already funded"),
+            ContractError::MilestoneAlreadyFunded => write!(f, "Milestone already funded"),
             ContractError::EscrowFullyFunded => write!(f, "This escrow is already fully funded"),
             ContractError::SignerInsufficientFunds => {
                 write!(f, "The signer does not have sufficient funds")
@@ -68,7 +72,7 @@ impl fmt::Display for ContractError {
             ContractError::NotEnoughAllowance => {
                 write!(f, "Not enough allowance to fund this escrow")
             }
-            ContractError::EscrowAlreadyCompleted => write!(f, "Escrow already completed"),
+            ContractError::MilestoneAlreadyCompleted => write!(f, "Milestone already completed"),
             ContractError::SignerInsufficientFundsToComplete => write!(
                 f,
                 "The signer does not have sufficient funds to complete this escrow"
@@ -83,10 +87,10 @@ impl fmt::Display for ContractError {
             ContractError::EscrowNotFound => write!(f, "Escrow not found"),
             ContractError::OnlyReleaseSignerCanReleaseEarnings => write!(
                 f,
-                "Only the release signer can release the escrow earnings"
+                "Only the release signer can release the escrow funds"
             ),
-            ContractError::EscrowNotCompleted => {
-                write!(f, "The escrow must be completed to release earnings")
+            ContractError::MilestoneNotCompleted => {
+                write!(f, "The milestone must be completed to release funds")
             }
             ContractError::EscrowBalanceNotEnoughToSendEarnings => write!(
                 f,
@@ -111,14 +115,14 @@ impl fmt::Display for ContractError {
             ContractError::OnlyDisputeResolverCanExecuteThisFunction => {
                 write!(f, "Only the dispute resolver can execute this function")
             }
-            ContractError::EscrowAlreadyInDispute => write!(f, "Escrow already in dispute"),
-            ContractError::EscrowNotInDispute => write!(f, "Escrow not in dispute"),
+            ContractError::MilestoneAlreadyInDispute => write!(f, "Milestone already in dispute"),
+            ContractError::MilestoneNotInDispute => write!(f, "Milestone not in dispute"),
             ContractError::InsufficientFundsForResolution => {
                 write!(f, "Insufficient funds for resolution")
             }
             ContractError::InvalidState => write!(f, "Invalid state"),
-            ContractError::EscrowOpenedForDisputeResolution => {
-                write!(f, "Escrow has been opened for dispute resolution")
+            ContractError::MilestoneOpenedForDisputeResolution => {
+                write!(f, "Milestone has been opened for dispute resolution")
             }
             ContractError::AmountToDepositGreatherThanEscrowAmount => {
                 write!(f, "Amount to deposit is greater than the escrow amount")
@@ -132,7 +136,7 @@ impl fmt::Display for ContractError {
             ContractError::MilestoneApprovedCantChangeEscrowProperties => {
                 write!(
                     f,
-                    "You can't change the escrow properties after the milestone is approved"
+                    "You cannot change the properties of an escrow after one of the milestones has been marked as approved"
                 )
             }
             ContractError::EscrowHasFunds => write!(f, "Escrow has funds"),
@@ -140,7 +144,7 @@ impl fmt::Display for ContractError {
             ContractError::Underflow => write!(f, "This operation can cause an Underflow"),
             ContractError::DivisionError => write!(f, "This operation can cause Division error"),
             ContractError::AdminNotFound => write!(f, "Admin not found!"),
-            ContractError::EscrowAlreadyResolved => write!(f, "This escrow is already resolved"),
+            ContractError::MilestoneAlreadyResolved => write!(f, "This milestone is already resolved"),
             ContractError::TooManyEscrowsRequested => {
                 write!(f, "You have requested too many escrows")
             }
@@ -152,10 +156,12 @@ impl fmt::Display for ContractError {
             }
             ContractError::TooManyMilestones => {
                 write!(f, "Cannot define more than 10 milestones in an escrow")
-            }
-            ContractError::ReceiverAndApproverFundsNotEqual => {
-                write!(f, "The approver's and receiver's funds must equal the current escrow balance.")
-            }
+            },
+            ContractError::CantReleaseAMilestoneInDispute => write!(f, "You cannot launch a milestone in dispute"),
+            ContractError::EscrowBalanceNotSufficienteToSendEarnings => write!(f, "The escrow balance must be equal to the amount of earnings defined for the escrow"),
+            ContractError::OnlyReleaseSignerCanClaimEarnings => write!(f, "Only the release signer can claim escrow earnings"),
+            ContractError::MilestoneAlreadyReleased => write!(f, "This milestone is already released"),
+            ContractError::MilestoneNotFound => write!(f, "Milestone not found"),
         }
     }
 }
